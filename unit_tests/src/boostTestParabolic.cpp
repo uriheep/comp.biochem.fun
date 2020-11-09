@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE( testParabolic1 )
   const double  y2  =  0;
   const double  z1  =  0;
   const double  z2  =  0;
-  const double  step  =  2;//0.1;
+  const double  step  =  0.1;//2;//0.1;
   cbc::Grid3D  grid( x1, x2,
                      y1, y2,
                      z1, z2,
