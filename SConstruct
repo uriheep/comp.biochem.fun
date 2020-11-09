@@ -1,6 +1,6 @@
 envUnitTests  =  Environment()
 
-libsPath  =  "/usr/local/lib/boost_cpp/boost_work/build-dir/boost/bin.v2/libs/test/build/gcc-7/release/link-static/threading-multi/visibility-hidden/"
+libsPath  =  "/usr/local/lib/boost_cpp/boost_work/build-dir/boost/bin.v2/libs/test/build/gcc-5.4.0/release/link-static/threading-multi/visibility-hidden/"
 libs  =  "boost_unit_test_framework"
 
 envUnitTests.Append( CPPPATH = ['/usr/local/lib/boost_cpp/boost_1_74_0/', 'include/'] )
