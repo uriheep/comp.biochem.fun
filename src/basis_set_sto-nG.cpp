@@ -102,7 +102,9 @@ BasisSetGTO::BasisSetGTO( const std::string&  filename ) : numChemElements_( 0 )
           // check it here due to the format of input JSON files
           // where exponents are given only once for all the
           // s, p and d orbitals:
-          if ( nullptr == arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrExponents )
+          if ( nullptr == arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrExponents
+            && nullptr == arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrCoeffs
+             )
           {
             arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrExponents  =  new double [ numPrimitives ];
             arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrCoeffs  =  new double [ numPrimitives ];
@@ -123,11 +125,9 @@ BasisSetGTO::BasisSetGTO( const std::string&  filename ) : numChemElements_( 0 )
           for ( rapidjson::SizeType i = 0; i < arrCoeffs.Size(); ++i )
           {
 //if ( 1 == ang...
-            if ( true == arrAngularMomentum[ i ].IsString()
-              && 0 < std::strlen( arrAngularMomentum[ i ].GetString() )
-               )
+            if ( true == arrAngularMomentum[ i ].IsInt() )
             {
-              const short  angMomentum  =  std::atoi( arrAngularMomentum[ i ].GetString() );
+              const short  angMomentum  =  arrAngularMomentum[ i ].GetInt();
               arrElements_[ indexElem ].arrOrbitals[ iOrbital ].angularMomentum  =  angMomentum;
             }
             const rapidjson::Value&  arr  =  arrCoeffs[ i ];
@@ -146,7 +146,10 @@ BasisSetGTO::BasisSetGTO( const std::string&  filename ) : numChemElements_( 0 )
               && iOrbital < arrElements_[ indexElem ].numOrbitals
                )
             {
-              if ( nullptr == arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrExponents )
+              arrElements_[ indexElem ].arrOrbitals[ iOrbital ].numPrimitives  =  numPrimitives;
+              if ( nullptr == arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrExponents
+                && nullptr == arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrCoeffs
+                 )
               {
                 arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrExponents  =  new double [ numPrimitives ];
                 arrElements_[ indexElem ].arrOrbitals[ iOrbital ].arrCoeffs  =  new double [ numPrimitives ];
@@ -223,24 +226,17 @@ BasisSetGTO::getValue( const short&   indexElement,
   const double  r2  =  ( x - xCenter ) * ( x - xCenter )
                      + ( y - yCenter ) * ( y - yCenter )
                      + ( z - zCenter ) * ( z - zCenter );
-//  const double  r  =  std::sqrt( r2 );
   const short&   angMomentum  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].angularMomentum;
+
   double  result  =  0;
   for ( short iPrim = 0; iPrim < numPrimitives; ++iPrim )
   {
     if ( 0 == angMomentum )
       result  +=  getSOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2 );
     if ( 1 == angMomentum )
-    {
-      result  +=  getPOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2, x - xCenter );
-//which of 3 to return?
-      result  +=  getPOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2, y - yCenter );
-      result  +=  getPOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2, z - zCenter );
-    }
+      result  +=  getPOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2 );
     if ( 2 == angMomentum )
-    {
       result  +=  getDOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2 );
-    }
   }
   return  result;
 }
@@ -255,20 +251,22 @@ BasisSetGTO::getSOrbitalPrimitive_( const short&   indexElement,
 {
   const double  coeff  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrCoeffs[ iPrim ];
   const double  exponent  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrExponents[ iPrim ];
-  return  coeff * std::exp( -exponent * r2 );
+  const double  factor  =  std::pow( 2 * exponent / M_PI, 3. / 4 );
+  return  coeff * factor * std::exp( -exponent * r2 );
 }
 
 double
 BasisSetGTO::getPOrbitalPrimitive_( const short&   indexElement,
                                     const short&   indexOrbital,
                                     const short&   iPrim,
-                                    const double&  r2,
-                                    const double&  delta
+                                    const double&  r2
                                   ) const noexcept
 {
   const double  coeff  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrCoeffs[ iPrim ];
   const double  exponent  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrExponents[ iPrim ];
-  return  coeff * delta * std::exp( -exponent * r2 );
+  const double  factor  =  std::pow( 128 * std::pow( exponent, 5 ) / std::pow( M_PI, 3 ), 1. / 4 );
+  const double  r  =  std::sqrt( r2 );
+  return  coeff * factor * r * std::exp( -exponent * r2 );
 }
 
 double
@@ -280,7 +278,33 @@ BasisSetGTO::getDOrbitalPrimitive_( const short&   indexElement,
 {
   const double  coeff  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrCoeffs[ iPrim ];
   const double  exponent  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrExponents[ iPrim ];
-  return  coeff * r2 * std::exp( -exponent * r2 );
+  const double  factor  =  std::pow( 2048 * std::pow( exponent, 7 ) / std::pow( M_PI, 3 ), 1. / 4 );
+  return  coeff * factor * r2 * std::exp( -exponent * r2 );
 }
+
+void
+BasisSetGTO::print_( const std::size_t&  iElem ) const noexcept
+{
+  if ( nullptr == arrElements_ )
+    return;
+  {
+    const Element_  element  =  arrElements_[ iElem ];
+    const std::size_t  numOrbitals  =  element.numOrbitals;
+    for ( std::size_t  iOrbit = 0; iOrbit < numOrbitals; ++iOrbit )
+    {
+      const Orbital_  orbit  =  element.arrOrbitals[ iOrbit ];
+      const short  numPrimitives  =  orbit.numPrimitives;
+      for ( short  iPrim = 0; iPrim < numPrimitives; ++iPrim )
+      {
+        const double  exponent  =  orbit.arrExponents[ iPrim ];
+        const double  coeff  =  orbit.arrCoeffs[ iPrim ];
+        printf( "iOrbital = %lu\tiPrimitive = %d\texponent = %.5e\tcoefficient = %.5e\n", iOrbit, iPrim, exponent, coeff );
+      }
+      printf( "\n" );
+    }
+
+  }
+}
+
 
 } // namespace  cbc
