@@ -22,6 +22,7 @@ class  BasisSetGTO {
                                   const double&  y,
                                   const double&  z
                                 ) const noexcept;
+    void  print_( const std::size_t&  iElem  =  0 ) const noexcept;
   private:
     BasisSetGTO( const BasisSetGTO& );
     double  getSOrbitalPrimitive_( const short&   iElement,
@@ -32,14 +33,14 @@ class  BasisSetGTO {
     double  getPOrbitalPrimitive_( const short&   iElement,
                                    const short&   iOrbital,
                                    const short&   iPrimitive,
-                                   const double&  r2,
-                                   const double&  x
+                                   const double&  r2
                                  ) const noexcept;
     double  getDOrbitalPrimitive_( const short&   iElement,
                                    const short&   iOrbital,
                                    const short&   iPrimitive,
                                    const double&  r2
                                  ) const noexcept;
+//    void  print_( const std::size_t&  iElem  =  0 ) const noexcept;
   private:
     struct  Orbital_ {
       public:
