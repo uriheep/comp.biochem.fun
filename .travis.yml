@@ -17,9 +17,10 @@ before_install:
   - ls /usr/local/lib/boost_cpp/boost_work/build-dir/boost/bin.v2/libs/test/build/
 script:
   - scons
-  - ./unit_tests/boostTest
-  - gcov unit_tests/src/boostTestGrid3D.cpp
-  - gcov unit_tests/src/boostTestParabolic.cpp
-  - gcov unit_tests/src/boostTestBasisFunction.cpp
+  - cd unit_tests
+  - ./boostTest
+  - gcov src/boostTestGrid3D.cpp
+  - gcov src/boostTestParabolic.cpp
+  - gcov src/boostTestBasisFunction.cpp
 after_success:
   - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
