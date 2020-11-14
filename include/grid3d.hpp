@@ -23,6 +23,7 @@ struct  Grid3D {
     // to avoid unintentional employment
     // of copy-ctors:
     Grid3D( const Grid3D& );
+    Grid3D&  operator=( const Grid3D& );
 };
 
 }
