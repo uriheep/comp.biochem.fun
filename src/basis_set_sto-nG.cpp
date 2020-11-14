@@ -27,6 +27,7 @@ BasisSetGTO::BasisSetGTO( const std::string&  filename ) : numChemElements_( 0 )
 
   char * string  =  new char [ fsize + 1 ];
   std::fread( string, fsize, 1, pFile );
+  string[ fsize ]  =  '\0';
   std::fclose( pFile );
   pFile  =  nullptr;
 
@@ -190,7 +191,7 @@ BasisSetGTO::getNumChemElements() const noexcept { return  numChemElements_; }
 
 std::size_t
 BasisSetGTO::getNumOrbitals( const short&  iElement ) const noexcept
-{ 
+{
   if ( nullptr == arrElements_
     || 0 > iElement
     || static_cast<std::size_t>( iElement ) >= numChemElements_
@@ -234,9 +235,9 @@ BasisSetGTO::getValue( const short&   indexElement,
     if ( 0 == angMomentum )
       result  +=  getSOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2 );
     if ( 1 == angMomentum )
-      result  +=  getPOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2 );
+      result  +=  getPOrbitalPrimitive_( indexElement, indexOrbital, iPrim, x, y, z, xCenter, yCenter, zCenter );
     if ( 2 == angMomentum )
-      result  +=  getDOrbitalPrimitive_( indexElement, indexOrbital, iPrim, r2 );
+      result  +=  getDOrbitalPrimitive_( indexElement, indexOrbital, iPrim, x, y, z, xCenter, yCenter, zCenter );
   }
   return  result;
 }
@@ -259,27 +260,51 @@ double
 BasisSetGTO::getPOrbitalPrimitive_( const short&   indexElement,
                                     const short&   indexOrbital,
                                     const short&   iPrim,
-                                    const double&  r2
+                                    const double&  x,
+                                    const double&  y,
+                                    const double&  z,
+                                    const double&  xCenter,
+                                    const double&  yCenter,
+                                    const double&  zCenter
                                   ) const noexcept
 {
   const double  coeff  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrCoeffs[ iPrim ];
   const double  exponent  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrExponents[ iPrim ];
   const double  factor  =  std::pow( 128 * std::pow( exponent, 5 ) / std::pow( M_PI, 3 ), 1. / 4 );
-  const double  r  =  std::sqrt( r2 );
-  return  coeff * factor * r * std::exp( -exponent * r2 );
+  const double  r2  =  ( x - xCenter ) * ( x - xCenter )
+                     + ( y - yCenter ) * ( y - yCenter )
+                     + ( z - zCenter ) * ( z - zCenter );
+  return  coeff * factor * ( ( x - xCenter ) + ( y - yCenter ) + ( z - zCenter ) ) * std::exp( -exponent * r2 );
 }
 
 double
 BasisSetGTO::getDOrbitalPrimitive_( const short&   indexElement,
                                     const short&   indexOrbital,
                                     const short&   iPrim,
-                                    const double&  r2
+                                    const double&  x,
+                                    const double&  y,
+                                    const double&  z,
+                                    const double&  xCenter,
+                                    const double&  yCenter,
+                                    const double&  zCenter
                                   ) const noexcept
 {
   const double  coeff  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrCoeffs[ iPrim ];
   const double  exponent  =  arrElements_[ indexElement ].arrOrbitals[ indexOrbital ].arrExponents[ iPrim ];
-  const double  factor  =  std::pow( 2048 * std::pow( exponent, 7 ) / std::pow( M_PI, 3 ), 1. / 4 );
-  return  coeff * factor * r2 * std::exp( -exponent * r2 );
+  const double  factor1  =  std::pow( 2048 * std::pow( exponent, 7 ) / std::pow( M_PI, 3 ), 1. / 4 );
+  const double  factor2  =  std::pow( 2048 * std::pow( exponent, 7 ) / 9 / std::pow( M_PI, 3 ), 1. / 4 );
+
+  const double  xx  =  ( x - xCenter ) * ( x - xCenter );
+  const double  yy  =  ( y - yCenter ) * ( y - yCenter );
+  const double  zz  =  ( z - zCenter ) * ( z - zCenter );
+
+  const double  xy  =  ( x - xCenter ) * ( y - yCenter );
+  const double  xz  =  ( x - xCenter ) * ( z - zCenter );
+  const double  yz  =  ( y - yCenter ) * ( z - zCenter );
+
+  const double  r2  =  xx + yy + zz;
+
+  return  coeff * ( factor2 * ( xy + xz + yz ) + factor1 * ( 0.5 * ( 2 * zz - xx - yy ) + std::sqrt( 3. / 4 ) * ( xx - yy ) ) ) * std::exp( -exponent * r2 );
 }
 
 void

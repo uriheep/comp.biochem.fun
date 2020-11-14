@@ -33,12 +33,22 @@ class  BasisSetGTO {
     double  getPOrbitalPrimitive_( const short&   iElement,
                                    const short&   iOrbital,
                                    const short&   iPrimitive,
-                                   const double&  r2
+                                   const double&  x,
+                                   const double&  y,
+                                   const double&  z,
+                                   const double&  xCenter,
+                                   const double&  yCenter,
+                                   const double&  zCenter
                                  ) const noexcept;
     double  getDOrbitalPrimitive_( const short&   iElement,
                                    const short&   iOrbital,
                                    const short&   iPrimitive,
-                                   const double&  r2
+                                   const double&  x,
+                                   const double&  y,
+                                   const double&  z,
+                                   const double&  xCenter,
+                                   const double&  yCenter,
+                                   const double&  zCenter
                                  ) const noexcept;
 //    void  print_( const std::size_t&  iElem  =  0 ) const noexcept;
   private:
