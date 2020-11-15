@@ -586,8 +586,8 @@ BOOST_AUTO_TEST_CASE( testBasisFunction3 )
 //  printf( "val1 = %f\tval2 = %f\tval3 = %f\n", value1, value2, value3 );
 }
 
-/*
-BOOST_AUTO_TEST_CASE( testBasisFunction1 )
+
+BOOST_AUTO_TEST_CASE( testBasisFunction4 )
 {
   constexpr double  lowX  =  -50;
   constexpr double  highX =  +50;
@@ -607,14 +607,61 @@ BOOST_AUTO_TEST_CASE( testBasisFunction1 )
   grid.nodes  =  new double [ numNodes ];
 
   // MAP BASIS FUNCTIONS ONTO THE GRID:
-  cbc::BasisSetGTO  bSet;
+  const cbc::BasisSetGTO  bSet( "sto-3g.H_C_N_O.json" );
 
+  const std::size_t  numChemElements  =  bSet.getNumChemElements();
+  BOOST_CHECK_EQUAL( std::size_t( 4 ), numChemElements );
 
+  for ( std::size_t  i = 0; i < numChemElements; ++i )
+  {
+    const std::size_t  numOrbitals  =  bSet.getNumOrbitals( i );
+    if ( 0 == i )
+      BOOST_CHECK_EQUAL( std::size_t( 1 ), numOrbitals );
+    else
+      BOOST_CHECK_EQUAL( std::size_t( 3 ), numOrbitals );
+  }
+
+  for ( std::size_t  iElement = 0; iElement < numChemElements; ++iElement )
+  {
+    const std::size_t  numOrbitals  =  bSet.getNumOrbitals( iElement );
+    for ( std::size_t  iOrbital = 0; iOrbital < numOrbitals; ++iOrbital )
+    {
+      double  sumSquares  =  0;
+      for ( std::size_t  iNode = 0; iNode < numNodes; ++iNode )
+      {
+        const std::size_t  kIndex  =  iNode / grid.numNodesX / grid.numNodesY;
+        const std::size_t  jIndex  =  ( iNode - kIndex * grid.numNodesX * grid.numNodesY ) / grid.numNodesY;
+        const std::size_t  iIndex  =  iNode - kIndex * grid.numNodesX * grid.numNodesY - jIndex * grid.numNodesY;
+        const double  x  =  lowX + iIndex * stepX;
+        const double  y  =  lowY + jIndex * stepY;
+        const double  z  =  lowZ + kIndex * stepZ;
+
+        const double  xCenter  =  0.5;
+        const double  yCenter  =  0.5;
+        const double  zCenter  =  0.5;
+
+        const double  value  =  bSet.getValue( iElement,
+                                               iOrbital,
+                                               xCenter,
+                                               yCenter,
+                                               zCenter,
+                                               x,
+                                               y,
+                                               z
+                                             );
+        grid.nodes[ iNode ]  =  value;
+        sumSquares  +=  value * value;
+      }
+      if ( 0 == iElement // H-atom
+        || 1 == iOrbital // p-orbitals
+         ) // this simple test can be done only with H-atom and p-orbitals, because all other orbitals imply certain assumptions about the localization of an electron;
+        BOOST_CHECK( 1e-1 >= std::abs( sumSquares - 1 ) );
+    }
+  }
 
   delete [] grid.nodes;
   grid.nodes  =  nullptr;
 }
-*/
 
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -671,7 +718,6 @@ getValueHydrogen_STO3G_HehreStewartPople_( const double&  xCenter,
   constexpr double  factor1  =  std::pow( 2 * exp1 / M_PI, 3. / 4 );
   constexpr double  factor2  =  std::pow( 2 * exp2 / M_PI, 3. / 4 );
   constexpr double  factor3  =  std::pow( 2 * exp3 / M_PI, 3. / 4 );
-//printf( "fact1  = %f\tfact2 = %f\tfact3 = %f\n", factor1, factor2, factor3 );
 
   const double  r2  =  ( x - xCenter ) * ( x - xCenter )
                      + ( y - yCenter ) * ( y - yCenter )
