@@ -13,11 +13,16 @@ class  Geometry {
     void  readCIF( const char * const  filename ) noexcept;
     // void  setCharges();
     // void  setMultiplicity();
-    unsigned  getNumAtoms() const noexcept;
+    const unsigned&  getNumAtoms() const noexcept;
+    const unsigned&  getNumChains() const noexcept;
+    const unsigned&  getNumResidues() const noexcept;
     const unsigned short *  getPeriodicNumbers() const noexcept;
     double *  getCoordinates() const noexcept;
     double *  getCharges() const noexcept;
     const unsigned short *  getMultiplicity() const noexcept;
+    unsigned short          getNumAtomsInResidue( const unsigned&  iResidue ) const noexcept;
+    unsigned                getNumResiduesInChain( const unsigned&  iChain ) const noexcept;
+    char                    getResidueName( const unsigned&  iResidue ) const noexcept;
     void  setCoordinates( const unsigned&  indexAtom,
                           const double&    x,
                           const double&    y,
@@ -40,7 +45,7 @@ class  Geometry {
     double          * aCharges_;
     unsigned short  * aMultiplicity_;
     unsigned short  * aNumAtomsInResidue_;
-    unsigned short  * aNumResiduesInChain_;
+    unsigned        * aNumResiduesInChain_;
     char            * aResiduesNames_;
 };
 

@@ -79,6 +79,9 @@ Geometry::readCIF( const char * const  filename ) noexcept
   }
 
   numAtoms_  =  extract.atoms.size();
+  if ( 0 == numAtoms_ )
+    return;
+
   numResidues_  =  0;
   numChains_  =  0;
 
@@ -116,12 +119,12 @@ Geometry::readCIF( const char * const  filename ) noexcept
   }
   aNumAtomsInResidue_   =  new unsigned short [ numResidues_ ];
   aResiduesNames_       =  new char [ numResidues_ ];
-  aNumResiduesInChain_  =  new unsigned short [ numChains_ ];
+  aNumResiduesInChain_  =  new unsigned [ numChains_ ];
 
   residueNumTmp  =  extract.atoms[ 0 ].residue_num; // initial
   std::strcmp( chainIDTmp, extract.atoms[ 0 ].chain_id ); // initial
   unsigned short  numAtomsInResidue   =  0;
-  unsigned short  numResiduesInChain  =  0;
+  unsigned        numResiduesInChain  =  0;
   std::size_t     iResidue  =  0;
   std::size_t     iChain    =  0;
   for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
@@ -166,8 +169,14 @@ Geometry::~Geometry() noexcept
   aResiduesNames_  =  nullptr;
 }
 
-unsigned
+const unsigned&
 Geometry::getNumAtoms() const noexcept { return  numAtoms_; }
+
+const unsigned&
+Geometry::getNumChains() const noexcept { return  numChains_; }
+
+const unsigned&
+Geometry::getNumResidues() const noexcept { return  numResidues_; }
 
 const unsigned short *
 Geometry::getPeriodicNumbers() const noexcept { return  aPeriodicNumbers_; }
@@ -196,6 +205,37 @@ Geometry::setCoordinates( const unsigned&  indexAtom,
   aCoordinates_[ 3 * indexAtom ]      =  x;
   aCoordinates_[ 3 * indexAtom + 1 ]  =  y;
   aCoordinates_[ 3 * indexAtom + 2 ]  =  z;
+}
+
+unsigned short
+Geometry::getNumAtomsInResidue( const unsigned&  iResidue ) const noexcept
+{ // all residues in the system are treated in a single plain array
+  if ( 0 == numResidues_
+    || iResidue >= numResidues_
+     )
+    return  0;
+  return  aNumAtomsInResidue_[ iResidue ];
+}
+
+unsigned
+Geometry::getNumResiduesInChain( const unsigned&  iChain ) const noexcept
+{ // this permits to split a single plain array of residues
+  // into separate chains:
+  if ( 0 == numChains_
+    || iChain >= numChains_
+     )
+    return  0;
+  return  aNumResiduesInChain_[ iChain ];
+}
+
+char
+Geometry::getResidueName( const unsigned&  iResidue ) const noexcept
+{ // all residues in the system are treated in a single plain array
+  if ( 0 == numResidues_
+    || iResidue >= numResidues_
+     )
+    return  '_';
+  return  aResiduesNames_[ iResidue ];
 }
 
 short
