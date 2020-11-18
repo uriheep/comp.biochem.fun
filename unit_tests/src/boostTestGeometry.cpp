@@ -11,8 +11,20 @@ BOOST_AUTO_TEST_CASE( boostTestGeometry1 )
 {
   const cbc::Geometry  geom;
 
-  const std::size_t  numAtoms  =  geom.getNumAtoms();
-  BOOST_CHECK_EQUAL( static_cast<std::size_t>( 0 ), numAtoms );
+  const unsigned&  numAtoms  =  geom.getNumAtoms();
+  const unsigned&  numChains  =  geom.getNumChains();
+  const unsigned&  numResidues  =  geom.getNumResidues();
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 0 ), numAtoms );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 0 ), numChains );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 0 ), numResidues );
+
+  const unsigned short  numAtomsInResidue  =  geom.getNumAtomsInResidue( 0 );
+  const unsigned        numResiduesInChain  =  geom.getNumResiduesInChain( 0 );
+  const char            residueName  =  geom.getResidueName( 0 );
+
+  BOOST_CHECK_EQUAL( static_cast<unsigned short>( 0 ), numAtomsInResidue );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 0 ), numResiduesInChain );
+  BOOST_CHECK_EQUAL( static_cast<char>( '_' ), residueName );
 
   const unsigned short *  aPeriodicNumbers  =  geom.getPeriodicNumbers();
   double *  aCoordinates  =  geom.getCoordinates();
