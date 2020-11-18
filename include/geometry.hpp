@@ -4,12 +4,14 @@
 #define MAX_CHAR_ATOM_NAME 4
 #define MAX_CHAR_RES_NAME 4
 
+class  ExtractCIF;
+
 namespace  cbc {
 
 class  Geometry {
   public:
     Geometry();
-    ~Geometry();
+    ~Geometry() noexcept;
     void  readCIF( const char * const  filename ) noexcept;
     // void  setCharges();
     // void  setMultiplicity();
@@ -34,6 +36,13 @@ class  Geometry {
   private:
     short  getPeriodicNumber_( const char  (&atomName)[ MAX_CHAR_ATOM_NAME ] ) const noexcept;
     char   getResidueName_( const char  (&residueName)[ MAX_CHAR_RES_NAME ] ) const noexcept;
+    void   setPeriodicNumbers_( const ExtractCIF&  extract ) noexcept;
+    void   setCoordinates_( const ExtractCIF&  extract ) noexcept;
+    void   setNumResidues_( const ExtractCIF&  extract ) noexcept;
+    void   setNumChains_( const ExtractCIF&  extract ) noexcept;
+    void   setNumAtomsInResidue_( const ExtractCIF&  extract ) noexcept;
+    void   setResiduesNames_( const ExtractCIF&  extract ) noexcept;
+    void   setNumResiduesInChain_( const ExtractCIF&  extract ) noexcept;
   private:
     // this design uses plain arrays intentionally:
     // for a smoother employment of CUDA in the future.

@@ -82,9 +82,6 @@ Geometry::readCIF( const char * const  filename ) noexcept
   if ( 0 == numAtoms_ )
     return;
 
-  numResidues_  =  0;
-  numChains_  =  0;
-
   delete [] aPeriodicNumbers_;
   delete [] aCoordinates_;
   delete [] aCharges_;
@@ -96,60 +93,25 @@ Geometry::readCIF( const char * const  filename ) noexcept
   aPeriodicNumbers_  =  new unsigned short [ numAtoms_ ];
   aCoordinates_  =  new double [ 3 * numAtoms_ ];
 
-  int  residueNumTmp  =  std::numeric_limits<int>::min(); // initial
-  char  chainIDTmp[ MAX_CHAR_CHAIN_ID ]  =  { '0', '0', '0', '\0' }; // initial
-  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
-  {
-    const Atom  &atom  =  extract.atoms[ iAtom ];
-    aPeriodicNumbers_[ iAtom ]  =  getPeriodicNumber_( atom.atom_name );
-    aCoordinates_[ 3 * iAtom ]      =  atom.x;
-    aCoordinates_[ 3 * iAtom + 1 ]  =  atom.y;
-    aCoordinates_[ 3 * iAtom + 2 ]  =  atom.z;
-    const int  residueNum  =  atom.residue_num;
-    if ( residueNum != residueNumTmp )
-    {
-      ++numResidues_;
-      residueNumTmp  =  residueNum;
-    }
-    if ( 0 != std::strcmp( chainIDTmp, atom.chain_id ) )
-    {
-      ++numChains_;
-      std::strcpy( chainIDTmp, atom.chain_id );
-    }
-  }
+  setPeriodicNumbers_( extract );
+  setCoordinates_( extract );
+  setNumResidues_( extract );
+  setNumChains_( extract );
+
+  if ( 0 == numResidues_
+    || 0 == numChains_
+     )
+    return;
+
   aNumAtomsInResidue_   =  new unsigned short [ numResidues_ ];
   aResiduesNames_       =  new char [ numResidues_ ];
   aNumResiduesInChain_  =  new unsigned [ numChains_ ];
 
-  residueNumTmp  =  extract.atoms[ 0 ].residue_num; // initial
-  std::strcmp( chainIDTmp, extract.atoms[ 0 ].chain_id ); // initial
-  unsigned short  numAtomsInResidue   =  0;
-  unsigned        numResiduesInChain  =  0;
-  std::size_t     iResidue  =  0;
-  std::size_t     iChain    =  0;
-  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
-  {
-    const Atom  &atom  =  extract.atoms[ iAtom ];
-    ++numAtomsInResidue;
-    const int  residueNum  =  atom.residue_num;
-    if ( residueNum != residueNumTmp )
-    {
-      aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue;
-      aResiduesNames_[ iResidue ]  =  getResidueName_( atom.residue_name );
-      ++iResidue;
-      numAtomsInResidue  =  0;
-      residueNumTmp  =  residueNum;
-    }
-    ++numResiduesInChain;
-    if ( 0 != std::strcmp( chainIDTmp, atom.chain_id ) )
-    {
-      aNumResiduesInChain_[ iChain ]  =  numResiduesInChain;
-      ++iChain;
-      numResiduesInChain  =  0;
-      std::strcpy( chainIDTmp, atom.chain_id );
-    }
-  }
+  setNumAtomsInResidue_( extract );
+  setResiduesNames_( extract );
+  setNumResiduesInChain_( extract );
 }
+
 
 Geometry::~Geometry() noexcept
 {
@@ -280,6 +242,147 @@ Geometry::getResidueName_( const char  (&residueName)[ MAX_CHAR_RES_NAME ] ) con
   if ( 0 == std::strcmp( "ASX\0", residueName ) )  return  'B';
   if ( 0 == std::strcmp( "GLX\0", residueName ) )  return  'Z';
   return  '0'; // cannot identify residue type
+}
+
+void
+Geometry::setPeriodicNumbers_( const ExtractCIF&  extract ) noexcept
+{
+  if ( nullptr == aPeriodicNumbers_ )
+    return;
+  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
+  {
+    const Atom  &atom  =  extract.atoms[ iAtom ];
+    aPeriodicNumbers_[ iAtom ]  =  getPeriodicNumber_( atom.atom_name );
+  }
+}
+
+void
+Geometry::setCoordinates_( const ExtractCIF&  extract ) noexcept
+{
+  if ( nullptr == aCoordinates_ )
+    return;
+  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
+  {
+    const Atom  &atom  =  extract.atoms[ iAtom ];
+    aCoordinates_[ 3 * iAtom ]      =  atom.x;
+    aCoordinates_[ 3 * iAtom + 1 ]  =  atom.y;
+    aCoordinates_[ 3 * iAtom + 2 ]  =  atom.z;
+  }
+}
+
+void
+Geometry::setNumResidues_( const ExtractCIF&  extract ) noexcept
+{ // assumption: all atoms are grouped by residues
+  numResidues_  =  0;
+  int  residueNumTmp  =  std::numeric_limits<int>::min(); // initial
+  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
+  {
+    const Atom  &atom  =  extract.atoms[ iAtom ];
+    const int  residueNum  =  atom.residue_num;
+    if ( residueNum != residueNumTmp )
+    {
+      ++numResidues_;
+      residueNumTmp  =  residueNum;
+    }
+  }
+}
+
+void
+Geometry::setNumChains_( const ExtractCIF&  extract ) noexcept
+{ // assumption: all atoms are grouped by chains
+  numChains_  =  0;
+  char  chainIDTmp[ MAX_CHAR_CHAIN_ID ]  =  { '0', '0', '0', '\0' }; // initial
+  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
+  {
+    const Atom  &atom  =  extract.atoms[ iAtom ];
+    if ( 0 != std::strcmp( chainIDTmp, atom.chain_id ) )
+    {
+      ++numChains_;
+      std::strcpy( chainIDTmp, atom.chain_id );
+    }
+  }
+}
+
+
+void
+Geometry::setNumAtomsInResidue_( const ExtractCIF&  extract ) noexcept
+{
+  if ( 0 == numAtoms_
+    || nullptr == aNumAtomsInResidue_
+     )
+    return;
+  int  residueNumTmp  =  extract.atoms[ 0 ].residue_num; // initial
+  unsigned short  numAtomsInResidue   =  0;
+  std::size_t     iResidue  =  0;
+  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
+  {
+    const Atom  &atom  =  extract.atoms[ iAtom ];
+    ++numAtomsInResidue;
+    const int  residueNum  =  atom.residue_num;
+    if ( residueNum != residueNumTmp )
+    {
+      aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue;
+      ++iResidue;
+      numAtomsInResidue  =  0;
+      residueNumTmp  =  residueNum;
+    }
+  }
+  if ( 0 == iResidue )
+    aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue;
+}
+
+void
+Geometry::setResiduesNames_( const ExtractCIF&  extract ) noexcept
+{
+  if ( 0 == numAtoms_
+    || nullptr == aResiduesNames_
+     )
+    return;
+  int  residueNumTmp  =  extract.atoms[ 0 ].residue_num; // initial
+  std::size_t     iResidue  =  0;
+  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
+  {
+    const Atom  &atom  =  extract.atoms[ iAtom ];
+    const int  residueNum  =  atom.residue_num;
+    if ( residueNum != residueNumTmp )
+    {
+      aResiduesNames_[ iResidue ]  =  getResidueName_( atom.residue_name );
+      ++iResidue;
+      residueNumTmp  =  residueNum;
+    }
+  }
+  if ( 0 == iResidue )
+    aResiduesNames_[ iResidue ]  =  getResidueName_( extract.atoms[ 0 ].residue_name );
+}
+
+void
+Geometry::setNumResiduesInChain_( const ExtractCIF&  extract ) noexcept
+{
+  if ( 0 == numAtoms_
+    || nullptr == aNumResiduesInChain_
+     )
+    return;
+  int  residueNumTmp  =  extract.atoms[ 0 ].residue_num; // initial
+  char  chainIDTmp[ MAX_CHAR_CHAIN_ID ]  =  { '0', '0', '0', '\0' }; // initial
+  unsigned     numResiduesInChain  =  1;
+  std::size_t  iChain  =  0;
+  for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
+  {
+    const Atom  &atom  =  extract.atoms[ iAtom ];
+    const int  residueNum  =  atom.residue_num;
+    if ( residueNum != residueNumTmp )
+    {
+      ++numResiduesInChain;
+      residueNumTmp  =  residueNum;
+    }
+    if ( 0 != std::strcmp( chainIDTmp, atom.chain_id ) )
+    {
+      aNumResiduesInChain_[ iChain ]  =  numResiduesInChain;
+      ++iChain;
+      numResiduesInChain  =  1;
+      std::strcpy( chainIDTmp, atom.chain_id );
+    }
+  }
 }
 
 } // namespace cbc
