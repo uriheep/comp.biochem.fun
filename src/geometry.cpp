@@ -321,14 +321,13 @@ Geometry::setNumAtomsInResidue_( const ExtractCIF&  extract ) noexcept
     const int  residueNum  =  atom.residue_num;
     if ( residueNum != residueNumTmp )
     {
-      aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue;
+      aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue - 1; // -1 because we are already on the next residue and need to take away one atom
       ++iResidue;
-      numAtomsInResidue  =  0;
+      numAtomsInResidue  =  1;
       residueNumTmp  =  residueNum;
     }
   }
-  if ( 0 == iResidue )
-    aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue;
+  aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue;
 }
 
 void
@@ -346,13 +345,12 @@ Geometry::setResiduesNames_( const ExtractCIF&  extract ) noexcept
     const int  residueNum  =  atom.residue_num;
     if ( residueNum != residueNumTmp )
     {
-      aResiduesNames_[ iResidue ]  =  getResidueName_( atom.residue_name );
+      aResiduesNames_[ iResidue ]  =  getResidueName_( 0 == iAtom ? atom.residue_name : extract.atoms[ iAtom - 1 ].residue_name );
       ++iResidue;
       residueNumTmp  =  residueNum;
     }
   }
-  if ( 0 == iResidue )
-    aResiduesNames_[ iResidue ]  =  getResidueName_( extract.atoms[ 0 ].residue_name );
+  aResiduesNames_[ iResidue ]  =  getResidueName_( extract.atoms[ numAtoms_ - 1 ].residue_name );
 }
 
 void
@@ -364,6 +362,7 @@ Geometry::setNumResiduesInChain_( const ExtractCIF&  extract ) noexcept
     return;
   int  residueNumTmp  =  extract.atoms[ 0 ].residue_num; // initial
   char  chainIDTmp[ MAX_CHAR_CHAIN_ID ]  =  { '0', '0', '0', '\0' }; // initial
+  std::strcpy( chainIDTmp,  extract.atoms[ 0 ].chain_id );
   unsigned     numResiduesInChain  =  1;
   std::size_t  iChain  =  0;
   for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
@@ -377,12 +376,13 @@ Geometry::setNumResiduesInChain_( const ExtractCIF&  extract ) noexcept
     }
     if ( 0 != std::strcmp( chainIDTmp, atom.chain_id ) )
     {
-      aNumResiduesInChain_[ iChain ]  =  numResiduesInChain;
+      aNumResiduesInChain_[ iChain ]  =  numResiduesInChain - 1; // -1 because we are already on a new chain and with a new residue
       ++iChain;
       numResiduesInChain  =  1;
       std::strcpy( chainIDTmp, atom.chain_id );
     }
   }
+  aNumResiduesInChain_[ numChains_ - 1 ]  =  numResiduesInChain;
 }
 
 } // namespace cbc
