@@ -225,4 +225,87 @@ BOOST_AUTO_TEST_CASE( boostTestGeometry3 )
   BOOST_CHECK_EQUAL( nullptr, aMultiplicity );
 }
 
+BOOST_AUTO_TEST_CASE( boostTestGeometry4 )
+{
+  cbc::Geometry  geom;
+  geom.readCIF( "hydrogen.cif" );
+
+  const unsigned&  numAtoms  =  geom.getNumAtoms();
+  const unsigned&  numChains  =  geom.getNumChains();
+  const unsigned&  numResidues  =  geom.getNumResidues();
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 1 ), numAtoms );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 1 ), numChains );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 1 ), numResidues );
+
+  const unsigned short  numAtomsInResidue  =  geom.getNumAtomsInResidue( 0 );
+  const unsigned        numResiduesInChain  =  geom.getNumResiduesInChain( 0 );
+  const char            residueName  =  geom.getResidueName( 0 );
+
+  BOOST_CHECK_EQUAL( static_cast<unsigned short>( 1 ), numAtomsInResidue );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 1 ), numResiduesInChain );
+  BOOST_CHECK_EQUAL( static_cast<char>( 'A' ), residueName );
+
+  const unsigned short *  aPeriodicNumbers  =  geom.getPeriodicNumbers();
+  double *  aCoordinates  =  geom.getCoordinates();
+
+  BOOST_CHECK_EQUAL( static_cast<unsigned short>( 1 ), aPeriodicNumbers[ 0 ] );
+  BOOST_CHECK_CLOSE( static_cast<double>( 30.178 ), aCoordinates[ 0 ], 1 );
+  BOOST_CHECK_CLOSE( static_cast<double>( 8.269 ), aCoordinates[ 1 ], 1 );
+  BOOST_CHECK_CLOSE( static_cast<double>( 4.313 ), aCoordinates[ 2 ], 1 );
+
+  double *  aCharges      =  geom.getCharges();
+  const unsigned short *  aMultiplicity  =  geom.getMultiplicity();
+
+  BOOST_CHECK_EQUAL( nullptr, aCharges );
+  BOOST_CHECK_EQUAL( nullptr, aMultiplicity );
+}
+
+BOOST_AUTO_TEST_CASE( boostTestGeometry5 )
+{
+  cbc::Geometry  geom;
+  geom.readCIF( "test2.cif" );
+
+  const unsigned&  numAtoms  =  geom.getNumAtoms();
+  const unsigned&  numChains  =  geom.getNumChains();
+  const unsigned&  numResidues  =  geom.getNumResidues();
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 5 ), numAtoms );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 5 ), numChains );
+  BOOST_CHECK_EQUAL( static_cast<unsigned>( 5 ), numResidues );
+
+  for ( unsigned iResidue = 0; iResidue < numResidues; ++iResidue )
+  {
+    const unsigned short  numAtomsInResidue  =  geom.getNumAtomsInResidue( iResidue );
+    const char            residueName  =  geom.getResidueName( 0 );
+    BOOST_CHECK_EQUAL( static_cast<unsigned short>( 1 ), numAtomsInResidue );
+    BOOST_CHECK_EQUAL( static_cast<char>( 'A' ), residueName );
+  }
+  for ( unsigned iChain = 0; iChain < numChains; ++iChain )
+  {
+    const unsigned  numResiduesInChain  =  geom.getNumResiduesInChain( iChain );
+    BOOST_CHECK_EQUAL( static_cast<unsigned>( 1 ), numResiduesInChain );
+  }
+
+
+  const unsigned short *  aPeriodicNumbers  =  geom.getPeriodicNumbers();
+  double *  aCoordinates  =  geom.getCoordinates();
+
+  for ( unsigned iAtom = 0; iAtom < numAtoms; ++iAtom )
+    BOOST_CHECK_EQUAL( static_cast<unsigned short>( 1 ), aPeriodicNumbers[ iAtom ] );
+
+  for ( unsigned iAtom = 0; iAtom < numAtoms; iAtom += 3 )
+  {
+    BOOST_CHECK_CLOSE( static_cast<double>( 30.178 ), aCoordinates[ iAtom ], 1 );
+    BOOST_CHECK_CLOSE( static_cast<double>( 8.269 ), aCoordinates[ iAtom + 1 ], 1 );
+    BOOST_CHECK_CLOSE( static_cast<double>( 4.313 ), aCoordinates[ iAtom + 2 ], 1 );
+  }
+
+  double *  aCharges      =  geom.getCharges();
+  const unsigned short *  aMultiplicity  =  geom.getMultiplicity();
+
+  BOOST_CHECK_EQUAL( nullptr, aCharges );
+  BOOST_CHECK_EQUAL( nullptr, aMultiplicity );
+}
+
+
+
 BOOST_AUTO_TEST_SUITE_END()
