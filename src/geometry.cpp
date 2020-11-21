@@ -272,7 +272,8 @@ Geometry::setCoordinates_( const ExtractCIF&  extract ) noexcept
 
 void
 Geometry::setNumResidues_( const ExtractCIF&  extract ) noexcept
-{ // assumption: all atoms are grouped by residues
+{ // assumptions: (i) all atoms are grouped by residues
+  //              (ii) all residues throughout the input file (including those in different chains) have different residue indices
   numResidues_  =  0;
   int  residueNumTmp  =  std::numeric_limits<int>::min(); // initial
   for ( std::size_t  iAtom = 0; iAtom < numAtoms_; ++iAtom )
@@ -321,7 +322,7 @@ Geometry::setNumAtomsInResidue_( const ExtractCIF&  extract ) noexcept
     const int  residueNum  =  atom.residue_num;
     if ( residueNum != residueNumTmp )
     {
-      aNumAtomsInResidue_[ iResidue ]  =  numAtomsInResidue - 1; // -1 because we are already on the next residue and need to take away one atom
+      aNumAtomsInResidue_[ iResidue ]  =  1 == numAtomsInResidue ? numAtomsInResidue : numAtomsInResidue - 1; // -1 because we are already on the next residue and need to take away one atom
       ++iResidue;
       numAtomsInResidue  =  1;
       residueNumTmp  =  residueNum;
@@ -356,6 +357,8 @@ Geometry::setResiduesNames_( const ExtractCIF&  extract ) noexcept
 void
 Geometry::setNumResiduesInChain_( const ExtractCIF&  extract ) noexcept
 {
+  // assumptions: (i) all atoms are grouped by residues
+  //              (ii) all residues throughout the input file (including those in different chains) have different residue indices
   if ( 0 == numAtoms_
     || nullptr == aNumResiduesInChain_
      )
