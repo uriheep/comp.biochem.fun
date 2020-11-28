@@ -415,7 +415,7 @@ SCFArmaSolver::getSMatrixValue_( const std::tuple<double, double>&  xRange,
   return  matrixElement;
 }
 
-arma::sp_cx_mat
+arma::sp_cx_dmat
 SCFArmaSolver::getLaplaceMatrix_( const std::tuple<double, double>&  xRange,
                                   const std::tuple<double, double>&  yRange,
                                   const std::tuple<double, double>&  zRange
@@ -516,22 +516,23 @@ SCFArmaSolver::getLaplaceMatrix_( const std::tuple<double, double>&  xRange,
   const arma::sp_cx_dmat  result( locationsInMatrix, vecMatrixValues );
   return  result;
 }
-/*
+
 double
-SCFArmaSolver::getLaplaceMatrixValue_( const std::tuple<double, double>&  xRange,
-                                       const std::tuple<double, double>&  yRange,
-                                       const std::tuple<double, double>&  zRange,
-                                       const double&                      xCenter1,
-                                       const double&                      yCenter1,
-                                       const double&                      zCenter1,
-                                       const double&                      xCenter2,
-                                       const double&                      yCenter2,
-                                       const double&                      zCenter2,
-                                       const unsigned short&              periodicNumber1,
-                                       const unsigned short&              periodicNumber2,
-                                       const std::size_t&                 iOrbital1,
-                                       const std::size_t&                 iOrbital2
-                                     ) const noexcept
+SCFArmaSolver::getFMatrixKineticValue_( const arma::sp_cx_dmat&            laplaceMatrix,
+                                        const std::tuple<double, double>&  xRange,
+                                        const std::tuple<double, double>&  yRange,
+                                        const std::tuple<double, double>&  zRange,
+                                        const double&                      xCenter1,
+                                        const double&                      yCenter1,
+                                        const double&                      zCenter1,
+                                        const double&                      xCenter2,
+                                        const double&                      yCenter2,
+                                        const double&                      zCenter2,
+                                        const unsigned short&              periodicNumber1,
+                                        const unsigned short&              periodicNumber2,
+                                        const std::size_t&                 iOrbital1,
+                                        const std::size_t&                 iOrbital2
+                                      ) const noexcept
 {
   const double  margin  =  getMarginValue_();
   const double  lowX  =  std::get<0>( xRange ) - margin;
@@ -550,7 +551,10 @@ SCFArmaSolver::getLaplaceMatrixValue_( const std::tuple<double, double>&  xRange
               );
 
   const std::size_t  numNodes  =  grid.numNodesX * grid.numNodesY * grid.numNodesZ;
-  double  matrixElement  =  0;
+
+  arma::cx_vec  vecRight( numNodes, arma::fill::zeros );
+  arma::cx_vec  vecLeft( numNodes, arma::fill::zeros );
+
   for ( std::size_t  iNode = 0; iNode < numNodes; ++iNode )
   {
     const std::size_t  iNodeZ  =  iNode / grid.numNodesX / grid.numNodesY;
@@ -568,6 +572,7 @@ SCFArmaSolver::getLaplaceMatrixValue_( const std::tuple<double, double>&  xRange
                                                 y,
                                                 z
                                               );
+    vecRight( iNode )  =  arma::cx_double( val1, 0 );
     const double  val2  =  basisSet_->getValue( static_cast<short>( periodicNumber2 ),
                                                 static_cast<short>( iOrbital2 ),
                                                 xCenter2,
@@ -577,12 +582,13 @@ SCFArmaSolver::getLaplaceMatrixValue_( const std::tuple<double, double>&  xRange
                                                 y,
                                                 z
                                               );
-    matrixElement  +=  ( val1 * val2 );
+    vecLeft( iNode )  =  arma::cx_double( val2, 0 );
   } // for ( iNode )
-  return  matrixElement;
-
+  const arma::cx_double  resultComplex  =  arma::dot( vecLeft.t(), ( laplaceMatrix * vecRight ) );
+  const double  result  =  resultComplex.real();
+  return  result;
 }
-*/
+
 /*
 arma::sp_cx_mat
 SCFArmaSolver::getFMatrix_( const std::tuple<double, double>&  xRange,
