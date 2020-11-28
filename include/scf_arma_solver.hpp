@@ -34,10 +34,10 @@ class  SCFArmaSolver {
     std::tuple<double, double>  getSpatialLimitsX_() const noexcept;
     std::tuple<double, double>  getSpatialLimitsY_() const noexcept;
     std::tuple<double, double>  getSpatialLimitsZ_() const noexcept;
-    arma::sp_cx_mat  getSMatrix_( const std::tuple<double, double>&  xRange,
-                                  const std::tuple<double, double>&  yRange,
-                                  const std::tuple<double, double>&  zRange
-                                ) const noexcept;
+    arma::sp_cx_dmat  getSMatrix_( const std::tuple<double, double>&  xRange,
+                                   const std::tuple<double, double>&  yRange,
+                                   const std::tuple<double, double>&  zRange
+                                 ) const noexcept;
     double  getSMatrixValue_( const std::tuple<double, double>&  xRange,
                               const std::tuple<double, double>&  yRange,
                               const std::tuple<double, double>&  zRange,
