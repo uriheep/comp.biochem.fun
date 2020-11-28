@@ -247,7 +247,7 @@ SCFArmaSolver::getSpatialLimitsZ_() const noexcept
   return  std::make_tuple( lowLimit, upLimit );
 }
 
-arma::sp_cx_mat
+arma::sp_cx_dmat
 SCFArmaSolver::getSMatrix_( const std::tuple<double, double>&  xRange,
                             const std::tuple<double, double>&  yRange,
                             const std::tuple<double, double>&  zRange
@@ -258,17 +258,19 @@ SCFArmaSolver::getSMatrix_( const std::tuple<double, double>&  xRange,
     const unsigned&  numAtoms  =  geometry_->getNumAtoms();
     const double *  aCoordinates  =  geometry_->getCoordinates();
     const unsigned short * aPeriodicNumbers  =  geometry_->getPeriodicNumbers();
-    unsigned  iAtom1  =  0;
-    unsigned  iAtom2  =  0;
 
     std::list<std::size_t>  listIIndices;
     std::list<std::size_t>  listJIndices;
     std::list<double>  listMatrixElements;
 
-    std::size_t  iMatrixIndex  =  0;
+    // to verify that the resulting sparse matrix will have the correct dimensions:
+    bool  maxRowRegistered  =  false;
+    bool  maxColRegistered  =  false;
     // try to account for interaction of each orbital of each atom
     // with each orbital of each other atom
     // and between orbitals within the same atom:
+    std::size_t  iMatrixIndex  =  0;
+    unsigned  iAtom1  =  0;
     for ( unsigned  iCoord1 = 0; iCoord1 < 3 * numAtoms; iCoord1 += 3 )
     {
       const double  xCenter1  =  aCoordinates[ iCoord1 ];
@@ -279,6 +281,7 @@ SCFArmaSolver::getSMatrix_( const std::tuple<double, double>&  xRange,
       for ( std::size_t  iOrbital1 = 0; iOrbital1 < numOrbitals1; ++iOrbital1 )
       {
         std::size_t  jMatrixIndex  =  0;
+        unsigned  iAtom2  =  0;
         for ( unsigned  iCoord2 = 0; iCoord2 < 3 * numAtoms; iCoord2 += 3 )
         {
           const double  xCenter2  =  aCoordinates[ iCoord2 ];
@@ -302,6 +305,10 @@ SCFArmaSolver::getSMatrix_( const std::tuple<double, double>&  xRange,
               listIIndices.push_back( iMatrixIndex );
               listJIndices.push_back( jMatrixIndex );
               listMatrixElements.push_back( matrixElement );
+              if ( numMolecularOrbitals_ - 1 == iMatrixIndex )
+                maxRowRegistered  =  true;
+              if ( numMolecularOrbitals_ - 1 == jMatrixIndex )
+                maxColRegistered  =  true;
             }
             ++jMatrixIndex;
           } // for ( iOrbital2 )
@@ -312,6 +319,18 @@ SCFArmaSolver::getSMatrix_( const std::tuple<double, double>&  xRange,
       ++iAtom1;
     } // for ( iCoord1 )
 
+    if ( false == maxRowRegistered )
+    {
+      listIIndices.push_back( numMolecularOrbitals_ - 1 );
+      listJIndices.push_back( 0 );
+      listMatrixElements.push_back( 0. );
+    }
+    if ( false == maxColRegistered )
+    {
+      listIIndices.push_back( 0 );
+      listJIndices.push_back( numMolecularOrbitals_ - 1 );
+      listMatrixElements.push_back( 0. );
+    }
     // prepare data for the Armadillo sparce matrix constructor ( it there a better solution? ):
     const std::size_t  numNonZeroElementsMatrix  =  listIIndices.size();
 
