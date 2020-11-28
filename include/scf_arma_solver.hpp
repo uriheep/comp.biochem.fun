@@ -52,6 +52,15 @@ class  SCFArmaSolver {
                               const std::size_t&                 iOrbital1,
                               const std::size_t&                 iOrbital2
                             ) const noexcept;
+    arma::sp_cx_mat  getLaplaceMatrix_( const std::tuple<double, double>&  xRange,
+                                        const std::tuple<double, double>&  yRange,
+                                        const std::tuple<double, double>&  zRange
+                                      ) const noexcept;
+    double  getFMatrixValue_( const std::tuple<double, double>&  xRange,
+                              const std::tuple<double, double>&  yRange,
+                              const std::tuple<double, double>&  zRange
+                            ) const noexcept;
+
   private:
     const Geometry        *geometry_;
     const BasisSetGTO     *basisSet_;
