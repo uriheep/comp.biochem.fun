@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <limits>
+#include <random>
 
 
 namespace  cbc {
@@ -188,12 +189,12 @@ SCFArmaSolver::getNumBasisFunctions_() const noexcept
 void
 SCFArmaSolver::initializeCoefficients_() noexcept
 {
-  if ( 0 == numMolecularOrbitals )
+  if ( 0 == numMolecularOrbitals_ )
     return;
 
   arma::cx_dmat  result( numMolecularOrbitals_, numMolecularOrbitals_, arma::fill::zeros );
   std::random_device  rd;
-  std::mt19137        gen( rd() );
+  std::mt19937        gen( rd() );
   std::uniform_real_distribution<>  dist( 0, 1. / numMolecularOrbitals_ );
   for ( unsigned iRow = 0; iRow < numMolecularOrbitals_; ++iRow )
     for ( unsigned iCol = 0; iCol < numMolecularOrbitals_; ++iCol )
