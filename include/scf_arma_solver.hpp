@@ -103,17 +103,30 @@ class  SCFArmaSolver {
                                                   const unsigned short&              periodicNumber2,
                                                   const std::size_t&                 iOrbital2
                                                 ) const noexcept;
-    arma::cx_dmat  getFMatrixElectronsElectronInteraction_( const std::tuple<double, double>&  xRange,
-                                                            const std::tuple<double, double>&  yRange,
-                                                            const std::tuple<double, double>&  zRange
-                                                          ) const noexcept;
+    arma::sp_cx_dmat  getFMatrixElectronsElectronInteraction_( const std::tuple<double, double>&  xRange,
+                                                               const std::tuple<double, double>&  yRange,
+                                                               const std::tuple<double, double>&  zRange
+                                                             ) const noexcept;
 
 
-    double  getFMatrixValue_( const std::tuple<double, double>&  xRange,
-                              const std::tuple<double, double>&  yRange,
-                              const std::tuple<double, double>&  zRange
-                            ) const noexcept;
+    arma::sp_cx_dmat  getFMatrix_( const std::tuple<double, double>&  xRange,
+                                   const std::tuple<double, double>&  yRange,
+                                   const std::tuple<double, double>&  zRange
+                                 ) const noexcept;
     void  initializeCoefficients_() noexcept;
+    arma::cx_dvec  getFMatrixExchangeCorrelationXAlpha_( const std::tuple<double, double>&  xRange,
+                                                         const std::tuple<double, double>&  yRange,
+                                                         const std::tuple<double, double>&  zRange
+                                                       ) const noexcept;
+    double  getExchangeCorrelationXAlphaValue_( const std::tuple<double, double>&  xRange,
+                                                const std::tuple<double, double>&  yRange,
+                                                const std::tuple<double, double>&  zRange,
+                                                const double&                      xCenter1,
+                                                const double&                      yCenter1,
+                                                const double&                      zCenter1,
+                                                const unsigned short&              periodicNumber1,
+                                                const std::size_t&                 iOrbital1
+                                              ) const noexcept;
 
   private:
     const Geometry        *geometry_;

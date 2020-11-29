@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <limits>
 #include <random>
+#include <cmath>
 
 
 namespace  cbc {
@@ -938,7 +939,7 @@ SCFArmaSolver::getElectronElectronInteractionValue_( const std::tuple<double, do
 }
 
 
-arma::cx_dmat
+arma::sp_cx_dmat
 SCFArmaSolver::getFMatrixElectronsElectronInteraction_( const std::tuple<double, double>&  xRange,
                                                         const std::tuple<double, double>&  yRange,
                                                         const std::tuple<double, double>&  zRange
@@ -948,7 +949,7 @@ SCFArmaSolver::getFMatrixElectronsElectronInteraction_( const std::tuple<double,
   const double *  aCoordinates  =  geometry_->getCoordinates();
   const unsigned short * aPeriodicNumbers  =  geometry_->getPeriodicNumbers();
 
-  arma::cx_dmat  result( numMolecularOrbitals_, numMolecularOrbitals_, arma::fill::zeros );
+  arma::sp_cx_dmat  result;
 
   // account for interaction of each orbital of an atom
   // with each orbital of another atom:
@@ -967,6 +968,7 @@ SCFArmaSolver::getFMatrixElectronsElectronInteraction_( const std::tuple<double,
       std::size_t  jMolecularOrbital  =  0;
       for ( unsigned  iCoord2 = 0; iCoord2 < 3 * numAtoms; iCoord2 += 3 )
       {
+// <--- make 3 loops?!
         const double  xCenter2  =  aCoordinates[ iCoord2 ];
         const double  yCenter2  =  aCoordinates[ iCoord2 + 1 ];
         const double  zCenter2  =  aCoordinates[ iCoord2 + 2 ];
@@ -990,7 +992,8 @@ SCFArmaSolver::getFMatrixElectronsElectronInteraction_( const std::tuple<double,
                                                                         periodicNumber2,
                                                                         iOrbital2
                                                                       );
-          result( iMolecularOrbital, jMolecularOrbital )  =  0.5 * mCoefficients_( iMolecularOrbital, jMolecularOrbital ) * value; // 0.5 to avoid double-account of interactions
+          const arma::cx_double  coefficient  =  mCoefficients_( iMolecularOrbital, jMolecularOrbital ); 
+          result( iMolecularOrbital, jMolecularOrbital )  =  0.5 * std::conj( coefficient ) * coefficient * value; // 0.5 to avoid double-account of interactions
           ++jMolecularOrbital;
         }
         ++iAtom2;
@@ -1002,16 +1005,124 @@ SCFArmaSolver::getFMatrixElectronsElectronInteraction_( const std::tuple<double,
   return  result;
 }
 
-/*
-arma::sp_cx_mat
+
+arma::sp_cx_dmat
 SCFArmaSolver::getFMatrix_( const std::tuple<double, double>&  xRange,
                             const std::tuple<double, double>&  yRange,
                             const std::tuple<double, double>&  zRange
                           ) const noexcept
 {
-
+  const arma::sp_cx_dmat  matrixKinetic  =  getFMatrixKinetic_( xRange, yRange, zRange );
+  const arma::dvec  vecElectronsNucleiInteractions  =  getFMatrixVecElectronsNucleiInteractionValues_( xRange, yRange, zRange );
+  const arma::sp_cx_dmat  matrixElectronElectron  =  getFMatrixElectronsElectronInteraction_( xRange, yRange, zRange );
+  const arma::cx_dvec  vecExchangeCorrelation  =  getFMatrixExchangeCorrelationXAlpha_( xRange, yRange, zRange );
+  arma::sp_cx_dmat  result  =  matrixKinetic + matrixElectronElectron;
+  for ( unsigned i = 0; i < numMolecularOrbitals_; ++i )
+  {
+    result( i, i )  +=  vecElectronsNucleiInteractions( i );
+    result( i, i )  +=  vecExchangeCorrelation( i );
+  }
+  return  result;
 }
-*/
+
+
+arma::cx_dvec
+SCFArmaSolver::getFMatrixExchangeCorrelationXAlpha_( const std::tuple<double, double>&  xRange,
+                                                     const std::tuple<double, double>&  yRange,
+                                                     const std::tuple<double, double>&  zRange
+                                                   ) const noexcept
+{
+  const unsigned&  numAtoms  =  geometry_->getNumAtoms();
+  const double *  aCoordinates  =  geometry_->getCoordinates();
+  const unsigned short * aPeriodicNumbers  =  geometry_->getPeriodicNumbers();
+
+  arma::cx_dvec  result( numMolecularOrbitals_, arma::fill::zeros );
+
+  for ( std::size_t  iMolecularOrbital = 0; iMolecularOrbital < numMolecularOrbitals_; ++iMolecularOrbital )
+  {
+    unsigned  iAtom1  =  0;
+    std::size_t  jMolecularOrbital  =  0;
+    for ( unsigned  iCoord1 = 0; iCoord1 < 3 * numAtoms; iCoord1 += 3 )
+    {
+      const double  xCenter1  =  aCoordinates[ iCoord1 ];
+      const double  yCenter1  =  aCoordinates[ iCoord1 + 1 ];
+      const double  zCenter1  =  aCoordinates[ iCoord1 + 2 ];
+      const unsigned short  periodicNumber1  =  aPeriodicNumbers[ iAtom1 ];
+      const std::size_t  numOrbitals1  =  basisSet_->getNumOrbitals( static_cast<short>( periodicNumber1 ) );
+      for ( std::size_t  iOrbital1 = 0; iOrbital1 < numOrbitals1; ++iOrbital1 )
+      {
+        const double  value  =  getExchangeCorrelationXAlphaValue_( xRange,
+                                                                    yRange,
+                                                                    zRange,
+                                                                    xCenter1,
+                                                                    yCenter1,
+                                                                    zCenter1,
+                                                                    periodicNumber1,
+                                                                    iOrbital1
+                                                                  );
+        const arma::cx_double  coefficient  =  mCoefficients_( iMolecularOrbital, jMolecularOrbital );
+        constexpr double  alpha  =  ( 1. + 2. / 3 ) / 2; // see textbooks for empirical values	
+        result( iMolecularOrbital )  +=  -9. / 8. * 3. / M_PI * alpha * std::conj( coefficient ) * coefficient * arma::cx_double( value, 0 );
+        ++jMolecularOrbital;
+      }
+      ++iAtom1;
+    }
+  } // for ( iMolecularOrbital1 )
+  return  result;
+}
+
+
+double
+SCFArmaSolver::getExchangeCorrelationXAlphaValue_( const std::tuple<double, double>&  xRange,
+                                                   const std::tuple<double, double>&  yRange,
+                                                   const std::tuple<double, double>&  zRange,
+                                                   const double&                      xCenter1,
+                                                   const double&                      yCenter1,
+                                                   const double&                      zCenter1,
+                                                   const unsigned short&              periodicNumber1,
+                                                   const std::size_t&                 iOrbital1
+                                                 ) const noexcept
+{
+  const double  margin  =  getMarginValue_();
+  const double  lowX  =  std::get<0>( xRange ) - margin;
+  const double  highX  =  std::get<1>( xRange ) + margin;
+  const double  lowY  =  std::get<0>( yRange ) - margin;
+  const double  highY  =  std::get<1>( yRange ) + margin;
+  const double  lowZ  =  std::get<0>( zRange ) - margin;
+  const double  highZ  =  std::get<1>( zRange ) + margin;
+
+  Grid3D  grid( lowX, highX,
+                lowY, highY,
+                lowZ, highZ,
+                resolution_,
+                resolution_,
+                resolution_
+              );
+
+  const std::size_t  numNodes  =  grid.numNodesX * grid.numNodesY * grid.numNodesZ;
+  double  result  =  0;
+  for ( std::size_t  iNode = 0; iNode < numNodes; ++iNode )
+  {
+    const std::size_t  iNodeZ  =  iNode / grid.numNodesX / grid.numNodesY;
+    const std::size_t  iNodeY  =  ( iNode - iNodeZ * grid.numNodesX * grid.numNodesY ) / grid.numNodesX;
+    const std::size_t  iNodeX  =  iNode - iNodeZ * grid.numNodesX * grid.numNodesY - iNodeY * grid.numNodesX;
+    const double  x1  =  lowX + iNodeX * resolution_;
+    const double  y1  =  lowY + iNodeY * resolution_;
+    const double  z1  =  lowZ + iNodeZ * resolution_;
+    const double  val  =  basisSet_->getValue( static_cast<short>( periodicNumber1 ),
+                                               static_cast<short>( iOrbital1 ),
+                                               xCenter1,
+                                               yCenter1,
+                                               zCenter1,
+                                               x1,
+                                               y1,
+                                               z1
+                                             );
+    result  +=  std::pow( val, 4. / 3. );
+  } // for ( iNode )
+  return  result;
+}
+
 
 } // namespace  cbc
 
