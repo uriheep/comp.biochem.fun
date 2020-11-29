@@ -71,6 +71,11 @@ class  SCFArmaSolver {
                                      const std::size_t&                 iOrbital1,
                                      const std::size_t&                 iOrbital2
                                    ) const noexcept;
+    arma::sp_cx_dmat  getFMatrixKinetic_( const std::tuple<double, double>&  xRange,
+                                          const std::tuple<double, double>&  yRange,
+                                          const std::tuple<double, double>&  zRange
+                                        ) const noexcept;
+
     arma::dvec  getFMatrixVecElectronsNucleiInteractionValues_( const std::tuple<double, double>&  xRange,
                                                                 const std::tuple<double, double>&  yRange,
                                                                 const std::tuple<double, double>&  zRange

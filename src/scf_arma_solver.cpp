@@ -631,6 +631,131 @@ SCFArmaSolver::getFMatrixKineticValue_( const arma::sp_cx_dmat&            lapla
 }
 
 
+arma::sp_cx_dmat
+SCFArmaSolver::getFMatrixKinetic_( const std::tuple<double, double>&  xRange,
+                                   const std::tuple<double, double>&  yRange,
+                                   const std::tuple<double, double>&  zRange
+                                 ) const noexcept
+{
+  const arma::sp_cx_dmat  laplaceMatrix  =  getLaplaceMatrix_( xRange,
+                                                               yRange,
+                                                               zRange
+                                                             );
+  const unsigned&  numAtoms  =  geometry_->getNumAtoms();
+  const double *  aCoordinates  =  geometry_->getCoordinates();
+  const unsigned short * aPeriodicNumbers  =  geometry_->getPeriodicNumbers();
+
+  std::list<std::size_t>  listIIndices;
+  std::list<std::size_t>  listJIndices;
+  std::list<double>  listMatrixElements;
+
+  // to verify that the resulting sparse matrix will have the correct dimensions:
+  bool  maxRowRegistered  =  false;
+  bool  maxColRegistered  =  false;
+  // < ^ >-product of each orbital of each atom
+  // with each orbital of each other atom
+  // and between orbitals within the same atom:
+  std::size_t  iMatrixIndex  =  0;
+  unsigned  iAtom1  =  0;
+  for ( unsigned  iCoord1 = 0; iCoord1 < 3 * numAtoms; iCoord1 += 3 )
+  {
+    const double  xCenter1  =  aCoordinates[ iCoord1 ];
+    const double  yCenter1  =  aCoordinates[ iCoord1 + 1 ];
+    const double  zCenter1  =  aCoordinates[ iCoord1 + 2 ];
+    const unsigned short  periodicNumber1  =  aPeriodicNumbers[ iAtom1 ];
+    const std::size_t  numOrbitals1  =  basisSet_->getNumOrbitals( static_cast<short>( periodicNumber1 ) );
+    for ( std::size_t  iOrbital1 = 0; iOrbital1 < numOrbitals1; ++iOrbital1 )
+    {
+      std::size_t  jMatrixIndex  =  0;
+      unsigned  iAtom2  =  0;
+      for ( unsigned  iCoord2 = 0; iCoord2 < 3 * numAtoms; iCoord2 += 3 )
+      {
+        const double  xCenter2  =  aCoordinates[ iCoord2 ];
+        const double  yCenter2  =  aCoordinates[ iCoord2 + 1 ];
+        const double  zCenter2  =  aCoordinates[ iCoord2 + 2 ];
+        const unsigned short  periodicNumber2  =  aPeriodicNumbers[ iAtom2 ];
+        const std::size_t  numOrbitals2  =  basisSet_->getNumOrbitals( static_cast<short>( periodicNumber2 ) );
+        for ( std::size_t  iOrbital2 = 0; iOrbital2 < numOrbitals2; ++iOrbital2 )
+        {
+          const double  value  =  getFMatrixKineticValue_( laplaceMatrix,
+                                                           xRange,
+                                                           yRange,
+                                                           zRange,
+                                                           xCenter1,
+                                                           yCenter1,
+                                                           zCenter1,
+                                                           xCenter2,
+                                                           yCenter2,
+                                                           zCenter2,
+                                                           periodicNumber1,
+                                                           periodicNumber2,
+                                                           iOrbital1,
+                                                           iOrbital2
+                                                         );
+          const double  eps  =  std::numeric_limits<double>::epsilon();
+          if ( eps < value )
+          {
+            listIIndices.push_back( iMatrixIndex );
+            listJIndices.push_back( jMatrixIndex );
+            listMatrixElements.push_back( value );
+            if ( numMolecularOrbitals_ - 1 == iMatrixIndex )
+              maxRowRegistered  =  true;
+            if ( numMolecularOrbitals_ - 1 == jMatrixIndex )
+              maxColRegistered  =  true;
+          }
+          ++jMatrixIndex;
+        } // for ( iOrbital2 )
+        ++iAtom2;
+      } // for ( iCoord2 )
+      ++iMatrixIndex;
+    } // for ( iOrbital1 )
+    ++iAtom1;
+  } // for ( iCoord1 )
+
+  if ( false == maxRowRegistered )
+  {
+    listIIndices.push_back( numMolecularOrbitals_ - 1 );
+    listJIndices.push_back( 0 );
+    listMatrixElements.push_back( std::numeric_limits<double>::epsilon() );
+  }
+  if ( false == maxColRegistered )
+  {
+    listIIndices.push_back( 0 );
+    listJIndices.push_back( numMolecularOrbitals_ - 1 );
+    listMatrixElements.push_back( std::numeric_limits<double>::epsilon() );
+  }
+  // prepare data for the Armadillo sparce matrix constructor ( it there a better solution? ):
+  const std::size_t  numNonZeroElementsMatrix  =  listIIndices.size();
+
+  arma::cx_vec  vecMatrixValues( numNonZeroElementsMatrix, arma::fill::zeros );
+  arma::umat  locationsInMatrix( 2, numNonZeroElementsMatrix, arma::fill::zeros );
+
+  std::list<std::size_t>::iterator  itIIndices  =  listIIndices.begin();
+  std::list<std::size_t>::iterator  itJIndices  =  listJIndices.begin();
+  std::list<double>::iterator       itMatrixElements  =  listMatrixElements.begin();
+  for ( std::size_t  i = 0;
+        listIIndices.end() != itIIndices
+     && listJIndices.end() != itJIndices
+     && listMatrixElements.end() != itMatrixElements
+     && i < numNonZeroElementsMatrix
+        ;
+        ++i
+      )
+  {
+    locationsInMatrix( 0, i )  =  *itIIndices;
+    locationsInMatrix( 1, i )  =  *itJIndices;
+    const double  matrixElement  =  *itMatrixElements;
+    vecMatrixValues( i )  =  arma::cx_double( matrixElement, 0 );
+    ++itIIndices;
+    ++itJIndices;
+    ++itMatrixElements;
+  }
+
+  const arma::sp_cx_dmat  result( locationsInMatrix, vecMatrixValues );
+  return  result;
+}
+
+
 arma::dvec
 SCFArmaSolver::getFMatrixVecElectronsNucleiInteractionValues_( const std::tuple<double, double>&  xRange,
                                                                const std::tuple<double, double>&  yRange,
