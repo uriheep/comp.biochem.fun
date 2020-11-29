@@ -29,10 +29,11 @@ SCFArmaSolver::SCFArmaSolver( const Geometry * const     geometry,
                                 resolution_( 0 ),
                                 maxNumNodesInGrid_( 0 ),
                                 aGrids_( nullptr ),
-                                aCoefficients_( nullptr )
+                                mCoefficients_()
 {
   numMolecularOrbitals_  =  getNumMolecularOrbitals_();
   numBasisFunctions_  =  getNumBasisFunctions_();
+  initializeCoefficients_();
 }
 
 
@@ -40,8 +41,8 @@ SCFArmaSolver::~SCFArmaSolver() noexcept
 {
   delete [] aGrids_;
   aGrids_  =  nullptr;
-  delete [] aCoefficients_;
-  aCoefficients_  =  nullptr;
+//  delete [] aCoefficients_;
+//  aCoefficients_  =  nullptr;
 }
 
 void
@@ -182,6 +183,26 @@ SCFArmaSolver::getNumBasisFunctions_() const noexcept
     result  +=  numOrbitals;
   }
   return  result;
+}
+
+void
+SCFArmaSolver::initializeCoefficients_() noexcept
+{
+  if ( 0 == numMolecularOrbitals )
+    return;
+
+  arma::cx_dmat  result( numMolecularOrbitals_, numMolecularOrbitals_, arma::fill::zeros );
+  std::random_device  rd;
+  std::mt19137        gen( rd() );
+  std::uniform_real_distribution<>  dist( 0, 1. / numMolecularOrbitals_ );
+  for ( unsigned iRow = 0; iRow < numMolecularOrbitals_; ++iRow )
+    for ( unsigned iCol = 0; iCol < numMolecularOrbitals_; ++iCol )
+    {
+      const double  randomCoef  =  dist( gen );
+      const arma::cx_double  value  =  arma::cx_double( randomCoef, 0 );
+      result( iRow, iCol )  =  value;
+    }
+  mCoefficients_  =  result;
 }
 
 std::tuple<double, double>

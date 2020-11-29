@@ -108,6 +108,7 @@ class  SCFArmaSolver {
                               const std::tuple<double, double>&  yRange,
                               const std::tuple<double, double>&  zRange
                             ) const noexcept;
+    void  initializeCoefficients_() noexcept;
 
   private:
     const Geometry        *geometry_;
@@ -118,7 +119,8 @@ class  SCFArmaSolver {
     double                resolution_;
     std::size_t           maxNumNodesInGrid_;
     Grid3D                *aGrids_;
-    double                *aCoefficients_;
+    //double                *aCoefficients_;
+    arma::cx_dmat         mCoefficients_;
 };
 
 }
