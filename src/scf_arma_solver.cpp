@@ -789,7 +789,7 @@ SCFArmaSolver::getFMatrixVecElectronsNucleiInteractionValues_( const std::tuple<
                                                                                                periodicNumber1,
                                                                                                iOrbital1
                                                                                              );
-        const unsigned short  periodicNumber2  =  aPeriodicNumbers[ iAtom2 ];
+        const unsigned short  periodicNumber2  =  aPeriodicNumbers[ iAtom2 ]; // == charge of the nucleus
         interactionValue  +=  ( periodicNumber2 * electronNucleusInteractionValue );
         ++iAtom2;
       }
@@ -990,7 +990,7 @@ SCFArmaSolver::getFMatrixElectronsElectronInteraction_( const std::tuple<double,
                                                                         periodicNumber2,
                                                                         iOrbital2
                                                                       );
-          result( iMolecularOrbital, jMolecularOrbital )  =  0.5 * value; // 0.5 to avoid double-account of interactions
+          result( iMolecularOrbital, jMolecularOrbital )  =  0.5 * mCoefficients_( iMolecularOrbital, jMolecularOrbital ) * value; // 0.5 to avoid double-account of interactions
           ++jMolecularOrbital;
         }
         ++iAtom2;
