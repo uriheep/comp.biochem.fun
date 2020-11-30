@@ -22,18 +22,14 @@ before_install:
   - sudo make 
   - sudo make install
   - cd ..
-  - ls /usr/include/armadillo
-  - sudo find /usr/* -name libarmadillo
-  - sudo find ~ -name armadillo
 script:
   - scons
   - cd unit_tests
   - ./boostTest
-  - cd ..
-  - gcov unit_tests/src/boostTestGrid3D.cpp
-  - gcov unit_tests/src/boostTestParabolic.cpp
-  - gcov unit_tests/src/boostTestBasisFunction.cpp
-  - gcov unit_tests/src/boostTestGeometry.cpp
-  - gcov unit_tests/src/boostTestSCFArmaSolver.cpp
+  - gcov src/boostTestGrid3D.cpp
+  - gcov src/boostTestParabolic.cpp
+  - gcov src/boostTestBasisFunction.cpp
+  - gcov src/boostTestGeometry.cpp
+  - gcov src/boostTestSCFArmaSolver.cpp
 after_success:
   - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
