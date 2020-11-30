@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/uriheep/comp.biochem.fun.svg?branch=master)](https://travis-ci.org/uriheep/comp.biochem.fun)
+[![Coverage Status](https://coveralls.io/repos/github/uriheep/comp.biochem.fun/badge.svg?branch=master)](https://coveralls.io/github/uriheep/comp.biochem.fun?branch=master)
+
 # funDFT
 
 1. Have you tried to use statistical distributions for the initial
