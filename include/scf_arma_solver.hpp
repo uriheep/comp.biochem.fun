@@ -23,7 +23,6 @@ class  SCFArmaSolver {
     void  setResolution( const double&  delta ) noexcept;
     void  setMaxNumNodesInGrid( const std::size_t&  numNodes ) noexcept;
     const double&  getResolution() const noexcept;
-    std::size_t    getNumNodesInGrid() const noexcept;
     void  run( const double&  tolerance ) noexcept;
     void  run( const std::size_t  numIterations ) noexcept;
     const double&  getEnergy() const noexcept;
@@ -127,7 +126,7 @@ class  SCFArmaSolver {
                                                 const unsigned short&              periodicNumber1,
                                                 const std::size_t&                 iOrbital1
                                               ) const noexcept;
-
+    arma::sp_cx_dmat  getSparseMatrix_( const arma::cx_dmat& ) const noexcept;
   private:
     const Geometry        *geometry_;
     const BasisSetGTO     *basisSet_;
@@ -136,8 +135,6 @@ class  SCFArmaSolver {
     double                energy_;
     double                resolution_;
     std::size_t           maxNumNodesInGrid_;
-    Grid3D                *aGrids_;
-    //double                *aCoefficients_;
     arma::cx_dmat         mCoefficients_;
 };
 

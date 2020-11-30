@@ -30,7 +30,6 @@ SCFArmaSolver::SCFArmaSolver( const Geometry * const     geometry,
                                 energy_( 0 ),
                                 resolution_( 0 ),
                                 maxNumNodesInGrid_( 0 ),
-                                aGrids_( nullptr ),
                                 mCoefficients_()
 {
   numMolecularOrbitals_  =  getNumMolecularOrbitals_();
@@ -41,10 +40,7 @@ SCFArmaSolver::SCFArmaSolver( const Geometry * const     geometry,
 
 SCFArmaSolver::~SCFArmaSolver() noexcept
 {
-  delete [] aGrids_;
-  aGrids_  =  nullptr;
-//  delete [] aCoefficients_;
-//  aCoefficients_  =  nullptr;
+ // nothing to do
 }
 
 void
@@ -65,17 +61,6 @@ SCFArmaSolver::getResolution() const noexcept
   return  resolution_;
 }
 
-std::size_t
-SCFArmaSolver::getNumNodesInGrid() const noexcept
-{
-  if ( nullptr == aGrids_ )
-    return  0;
-  const unsigned  numNodesX  =  aGrids_[ 0 ].numNodesX;
-  const unsigned  numNodesY  =  aGrids_[ 0 ].numNodesY;
-  const unsigned  numNodesZ  =  aGrids_[ 0 ].numNodesZ;
-  return  static_cast<std::size_t>( numNodesX * numNodesY * numNodesZ );
-}
-/*
 void
 SCFArmaSolver::run( const double&  tolerance ) noexcept
 {
@@ -87,17 +72,74 @@ SCFArmaSolver::run( const double&  tolerance ) noexcept
   const std::tuple<double, double>  yRange  =  getSpatialLimitsY_();
   const std::tuple<double, double>  zRange  =  getSpatialLimitsZ_();
 
-  const arma::cx_mat  sMatrix  =  getSMatrix_( xRange, yRange, zRange );
-  const arma::cx_mat  fMatrix  =  getFMatrix_( xRange, yRange, zRange );
+  const arma::sp_cx_dmat  sMatrix  =  getSMatrix_( xRange, yRange, zRange );
+  // arma::inv() requires non-sparse matrices ( refactor member-methods? ):
+  arma::cx_dmat  sMatrixDense( numMolecularOrbitals_, numMolecularOrbitals_, arma::fill::zeros );
+  for ( unsigned i = 0; i < numMolecularOrbitals_; ++i )
+    for ( unsigned j = 0; j < numMolecularOrbitals_; ++j )
+      sMatrixDense( i, j )  =  sMatrix( i, j );
 
+  double  maxDelta  =  tolerance;
 
+  do {
+    const arma::sp_cx_dmat  fMatrix  =  getFMatrix_( xRange, yRange, zRange );
+
+    // arma::inv() requires non-sparse matrices ( refactor member-methods? ):
+    arma::cx_dmat  fMatrixDense( numMolecularOrbitals_, numMolecularOrbitals_, arma::fill::zeros );
+    for ( unsigned i = 0; i < numMolecularOrbitals_; ++i )
+      for ( unsigned j = 0; j < numMolecularOrbitals_; ++j )
+        fMatrixDense( i, j )  =  fMatrix( i, j );
+
+    const arma::cx_dmat  sMatrixInv  =  arma::inv( sMatrixDense );
+    const arma::cx_dmat  sMatrixInvSqRoot  =  arma::sqrtmat( sMatrixInv );
+
+    const arma::cx_dmat  fMatrixPrime  =  sMatrixInvSqRoot * ( fMatrixDense * sMatrixInvSqRoot );
+
+    // arma::eigs_gen() requires SPARSE matrices:
+    const arma::sp_cx_dmat  fMatrixPrimeSparse  =  getSparseMatrix_( fMatrixPrime );
+
+    arma::cx_vec  eigenval;
+    arma::cx_mat  eigenvec;
+
+    arma::eigs_gen( eigenval, eigenvec, fMatrixPrimeSparse, numMolecularOrbitals_ );
+
+    // Armadillo documentation indicates that 'eigenvec' may sometimes have 
+    // a different dimensionality than the requested one:
+    if ( numMolecularOrbitals_ != eigenvec.n_cols
+      || numMolecularOrbitals_ != eigenvec.n_rows
+       )
+    {
+      arma::cx_mat  eigenvecFull( numMolecularOrbitals_, numMolecularOrbitals_, arma::fill::zeros );
+      for ( unsigned i = 0; i < eigenvec.n_rows && i < numMolecularOrbitals_; ++i )
+        for ( unsigned j = 0; j < eigenvec.n_cols && j < numMolecularOrbitals_; ++j )
+          eigenvecFull( i, j )  =  eigenvec( i, j );
+      eigenvec  =  eigenvecFull;
+    }
+
+    const arma::cx_dmat  coefficients  =  sMatrixInvSqRoot * eigenvec;
+
+    for ( unsigned i = 0; i < numMolecularOrbitals_; ++i )
+      for ( unsigned j = 0; j < numMolecularOrbitals_; ++j )
+      {
+        const arma::cx_double  coef1  =  mCoefficients_( i, j );
+        const arma::cx_double  coef2  =  coefficients( i, j );
+        const double  dReal  =  std::abs( coef1.real() - coef2.real() );
+        const double  dImag  =  std::abs( coef1.imag() - coef2.imag() );
+        maxDelta  =  maxDelta > dReal ? maxDelta : dReal;
+        maxDelta  =  maxDelta > dImag ? maxDelta : dImag;
+      }
+    for ( unsigned i = 0; i < numMolecularOrbitals_; ++i )
+      for ( unsigned j = 0; j < numMolecularOrbitals_; ++j )
+        mCoefficients_( i, j )  =  coefficients( i, j );
+  }
+  while ( tolerance < maxDelta );
 
 }
-
+/*
 void
 SCFArmaSolver::run( const std::size_t&  numIterations ) noexcept
 {
-
+TODO
 }
 */
 const double&
@@ -1123,6 +1165,55 @@ SCFArmaSolver::getExchangeCorrelationXAlphaValue_( const std::tuple<double, doub
   return  result;
 }
 
+
+arma::sp_cx_dmat
+SCFArmaSolver::getSparseMatrix_( const arma::cx_dmat&  matrix ) const noexcept
+{
+  std::list<std::size_t>  listIIndices;
+  std::list<std::size_t>  listJIndices;
+
+  arma::cx_vec  values;
+
+  std::size_t  numNonZeroElementsMatrix  =  0;
+  for ( std::size_t  i = 0; i < matrix.n_rows; ++i )
+    for ( std::size_t  j = 0; j < matrix.n_cols; ++j )
+    {
+      const std::complex<double>  element  =  matrix( i, j );
+      const double  real  =  std::abs( element.real() );
+      const double  imag  =  std::abs( element.imag() );
+      const double  eps  =  std::numeric_limits<double>::epsilon();
+      if ( real > eps
+        || imag > eps
+         )
+      {
+        listIIndices.push_back( i );
+        listJIndices.push_back( j );
+        values << element;
+        ++numNonZeroElementsMatrix;
+      }
+    }
+
+  arma::umat  locations( 2, numNonZeroElementsMatrix, arma::fill::zeros );
+
+  std::list<std::size_t>::iterator  itIIndices  =  listIIndices.begin();
+  std::list<std::size_t>::iterator  itJIndices  =  listJIndices.begin();
+  for ( std::size_t  i = 0;
+        listIIndices.end() != itIIndices
+     && listJIndices.end() != itJIndices
+     && i < numNonZeroElementsMatrix
+        ;
+        ++i
+      )
+  {
+    locations( 0, i )  =  *itIIndices;
+    locations( 1, i )  =  *itJIndices;
+    ++itIIndices;
+    ++itJIndices;
+  }
+
+  const arma::sp_cx_dmat  result( locations, values );
+  return  result;
+}
 
 } // namespace  cbc
 
