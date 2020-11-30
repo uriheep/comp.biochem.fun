@@ -32,4 +32,5 @@ script:
   - gcov src/boostTestGeometry.cpp
   - gcov src/boostTestSCFArmaSolver.cpp
 after_success:
+  - cd ..
   - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
