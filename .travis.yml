@@ -17,8 +17,8 @@ before_install:
   - sudo apt-get install cmake libopenblas-dev liblapack-dev libarpack2-dev libsuperlu-dev
   - sudo wget http://sourceforge.net/projects/arma/files/armadillo-10.1.2.tar.xz
   - sudo tar -xvf armadillo-10.1.2.tar.xz 
-  - sudo cd armadillo-10.1.2 
-  - ./configure 
+  - cd armadillo-10.1.2 
+  - sudo ./configure 
   - sudo make 
   - sudo make install
   - sudo apt-get install libarmadillo-dev
