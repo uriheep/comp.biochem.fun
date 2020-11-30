@@ -33,7 +33,7 @@ to be reported
 
 1. `scons` to build all the code in this project
 
-## Example:
+## Examples:
 
 to be reported
 
