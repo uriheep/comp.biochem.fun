@@ -15,6 +15,8 @@ before_install:
   - sudo cp -r ../boost_1_74_0/ /usr/local/lib/boost_cpp
   - cd ..
   - ls /usr/local/lib/boost_cpp/boost_work/build-dir/boost/bin.v2/libs/test/build/
+  - sudo apt-get install cmake libopenblas-dev liblapack-dev libarpack2-dev libsuperlu-dev
+  - sudo apt-get install -y libarmadillo-dev
 script:
   - scons
   - cd unit_tests
@@ -22,5 +24,7 @@ script:
   - gcov src/boostTestGrid3D.cpp
   - gcov src/boostTestParabolic.cpp
   - gcov src/boostTestBasisFunction.cpp
+  - gcov src/boostTestGeometry.cpp
+  - gcov src/boostTestSCFArmaSolver.cpp
 after_success:
   - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
